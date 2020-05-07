@@ -1,0 +1,42 @@
+% vim:ft=tex:
+%
+\documentclass[10pt]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amsfonts,amsthm}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage[landscape]{geometry}
+
+\title{ Percival vs Ipopt results }
+
+\begin{document}
+\maketitle
+
+\begin{center}
+  \large \bf Profiles
+
+  \includegraphics{profile-time.png}
+  ~
+  \includegraphics{profile-eval.png}
+\end{center}
+
+\scriptsize
+\begin{center}
+  \large \bf Percival
+\end{center}
+\input{Percival}
+
+\begin{center}
+  \large \bf Ipopt
+\end{center}
+\input{Ipopt}
+
+
+\begin{center}
+  \large \bf Side by side
+\end{center}
+
+\include{SideBySide}
+
+\end{document}
