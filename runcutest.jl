@@ -43,5 +43,5 @@ function profile_and_tables(stats)
   png("profile-eval")
 end
 
-#stats = runcutest()
+stats = runcutest()
 profile_and_tables(stats)
