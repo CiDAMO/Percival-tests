@@ -6,7 +6,7 @@
 \usepackage{amsmath,amsfonts,amsthm}
 \usepackage{graphicx}
 \usepackage{longtable}
-\usepackage[landscape]{geometry}
+\usepackage[left=1cm,right=1cm,top=1cm,bottom=2cm]{geometry}
 
 \title{ Percival vs Ipopt results }
 
@@ -15,28 +15,32 @@
 
 \begin{center}
   \large \bf Profiles
-
-  \includegraphics{profile-time.png}
-  ~
-  \includegraphics{profile-eval.png}
 \end{center}
+\input{images}
 
+\newpage
 \scriptsize
 \begin{center}
   \large \bf Percival
 \end{center}
 \input{Percival}
 
+\newpage
 \begin{center}
   \large \bf Ipopt
 \end{center}
 \input{Ipopt}
 
-
+\newpage
 \begin{center}
-  \large \bf Side by side
+  \large \bf Joined
 \end{center}
+\input{joined}
 
-\include{SideBySide}
+% \newpage
+% \begin{center}
+%   \large \bf Side by side
+% \end{center}
+% \input{SideBySide}
 
 \end{document}
