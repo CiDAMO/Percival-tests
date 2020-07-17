@@ -1,12 +1,12 @@
-using CUTEst, DataFrames, NLPModels, NLPModelsIpopt, Percival, Plots, PrettyTables, SolverBenchmark, SolverTools
+using CUTEst, DataFrames, Dates, NLPModels, NLPModelsIpopt, Percival, Plots, PrettyTables, SolverBenchmark, SolverTools
 pyplot(size=(600,400))
 
-const max_time = 10.0
+const max_time = 60.0
 const atol = 1e-6
 const rtol = 1e-6
 const ctol = 1e-6
 const ftol = 1e-4
-const max_v_and_c = 1000
+const max_v_and_c = 100
 
 # List of Ipopt parameters: C.2 Termination
 # https://projects.coin-or.org/Ipopt/browser/stable/3.11/Ipopt/doc/documentation.pdf
@@ -45,7 +45,7 @@ function profile_and_tables(stats)
   hdr_override = Dict(:objective => "\\(f(x)\\)")
 
   # Don't create this in the stats
-  feas = Dict{Symbol,Vector}(s => df[!,:primal_feas] .≤ 1e-8 for (s,df) in stats)
+  feas = Dict{Symbol,Vector}(s => df[!,:primal_feas] .≤ ctol for (s,df) in stats)
   fmin = min.(stats[:Percival].objective + .!feas[:Percival] * 1e20,
               stats[:Ipopt].objective + .!feas[:Ipopt] * 1e20)
 
@@ -53,7 +53,7 @@ function profile_and_tables(stats)
     ineq = abs.(df[!,:objective] - fmin) ./ max.(1.0 ,abs.(fmin)) .<= ftol
 
     df[!,:success] = min.(ineq, feas[s])*1
-    df[!,:evals] = df[!,:neval_grad] + (df[!,:neval_obj] - df[!,:neval_grad])/3
+    df[!,:evals] = 2 * df[!,:neval_grad] + df[!,:neval_obj]
     # Individual tables
     open("$s.tex", "w") do io
       pretty_latex_stats(io, df[!, cols], hdr_override=hdr_override)
@@ -173,6 +173,10 @@ function profile_and_tables(stats)
     println(io, "\\begin{center}")
     for (subsetname, subsetsuffix, subset) in subsets
       I = indexin(subset, all_problems)
+      if length(I) == 0
+        @warn("Empty subset $subsetname")
+        continue
+      end
       ss_stats = Dict(s => df[I,:] for (s,df) in stats)
       nss = length(I)
       for (costs, costnames, costsuffix) in costsets
@@ -191,5 +195,15 @@ function profile_and_tables(stats)
   end
 end
 
-# stats = runcutest()
+isdir("saved-stats") || mkdir("saved-stats")
+
+stats = runcutest()
+
+save_fname = "saved-stats/results-" * Dates.format(now(), "YYYY-mm-ddTHH:MM:SS") * ".jld"
+save_stats(stats, save_fname)
+
+# For loading - notice the name below
+# load_fname = "saved-stats/results-results-2020-07-16T13:46:02.jld"
+# stats2 = load_stats(load_fname)
+
 profile_and_tables(stats)
