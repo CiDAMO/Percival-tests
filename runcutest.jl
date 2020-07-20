@@ -124,7 +124,7 @@ function profile_and_tables(stats)
 
   # We'll use the following subsets of problems
   all_problems = stats[:Ipopt][!,:name]
-  cutest_select = Dict(:min_con=>1, :max_var=>max_v_and_c, :max_con=>max_v_and_c, :objtype=>2:6)
+  cutestselect = Dict(:min_con=>1, :max_var=>max_v_and_c, :max_con=>max_v_and_c, :objtype=>2:6)
   subsets = [
     (
       "todos problemas", # "all problems",
