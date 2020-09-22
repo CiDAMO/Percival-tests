@@ -5,8 +5,8 @@ const max_time = 60.0
 const atol = 1e-6
 const rtol = 1e-6
 const ctol = 1e-6
-const ftol = 1e-4
-const max_v_and_c = 100
+const ftol = 1e-2
+const max_v_and_c = 1000
 
 # List of Ipopt parameters: C.2 Termination
 # https://projects.coin-or.org/Ipopt/browser/stable/3.11/Ipopt/doc/documentation.pdf
@@ -33,34 +33,47 @@ function runcutest()
                                         acceptable_iter=0, # Do no stop when "acceptable"
                                         kwargs...)
 
-  solvers = Dict(:Percival => percival, :Ipopt => ipopt_wrapper)
+  solvers = Dict(:Percival => percival, :IPOPT => ipopt_wrapper)
 
   stats = bmark_solvers(solvers, problems)
 end
 
 function profile_and_tables(stats)
   # These are the columns in the final report
-  cols = [:name, :nvar, :ncon, :status, :objective, :dual_feas, :primal_feas, :elapsed_time, :evals, :success]
+  cols = [:name, :nvar, :ncon, :status, :objective, :dual_feas, :primal_feas, :elapsed_time, :evals, :success, :elapsed_time_new]
   # Use this for override the column header
   hdr_override = Dict(:objective => "\\(f(x)\\)")
 
   # Don't create this in the stats
   feas = Dict{Symbol,Vector}(s => df[!,:primal_feas] .≤ ctol for (s,df) in stats)
   fmin = min.(stats[:Percival].objective + .!feas[:Percival] * 1e20,
-              stats[:Ipopt].objective + .!feas[:Ipopt] * 1e20)
+              stats[:IPOPT].objective + .!feas[:IPOPT] * 1e20)
+
+  # 5% do mais rápido = empate
+  more_faster = min.(stats[:Percival].elapsed_time, stats[:IPOPT].elapsed_time)
+  for (s,df) in stats
+    df[!,:elapsed_time_new] = zeros(length(more_faster))
+    for i = 1:length(more_faster)
+      if df[!,:elapsed_time][i] <= 1.05*more_faster[i]
+        df[!,:elapsed_time_new][i] =  copy(more_faster[i])
+      else
+        df[!,:elapsed_time_new][i] =  copy(df[!,:elapsed_time][i])
+      end
+    end
+  end
 
   for (s,df) in stats
     ineq = abs.(df[!,:objective] - fmin) ./ max.(1.0 ,abs.(fmin)) .<= ftol
 
     df[!,:success] = min.(ineq, feas[s])*1
-    df[!,:evals] = 2 * df[!,:neval_grad] + df[!,:neval_obj]
+    df[!,:evals] = 2*df[!,:neval_grad] + df[!,:neval_obj]
     # Individual tables
     open("$s.tex", "w") do io
       pretty_latex_stats(io, df[!, cols], hdr_override=hdr_override)
     end
   end
 
-  np = size(stats[:Ipopt], 1)
+  np = size(stats[:IPOPT], 1)
 
   # For the table with both solvers stacked
   cols = [:name, :nvar, :ncon, :status, :objective, :primal_feas, :evals, :success]
@@ -107,14 +120,14 @@ function profile_and_tables(stats)
   # We'll use two sets of profiles: using fmin and usign status
   costsets = [
     (
-      [df -> (df.success .!= true) * Inf + df.elapsed_time,
+      [df -> (df.success .!= true) * Inf + df.elapsed_time_new,
         df -> (df.success .!= true) * Inf + df.evals],
       ["Tempo - \$f_{\\min}\$",
         "Avaliações - \$f_{\\min}\$"],
       "fmin"
     ),
     (
-      [df -> (df.status .!= :first_order) * Inf + df.elapsed_time,
+      [df -> (df.status .!= :first_order) * Inf + df.elapsed_time_new,
         df -> (df.status .!= :first_order) * Inf + df.evals],
       ["Tempo - flag de saída",
         "Avaliações - flag de saída"],
@@ -123,7 +136,7 @@ function profile_and_tables(stats)
   ]
 
   # We'll use the following subsets of problems
-  all_problems = stats[:Ipopt][!,:name]
+  all_problems = stats[:IPOPT][!,:name]
   cutestselect = Dict(:min_con=>1, :max_var=>max_v_and_c, :max_con=>max_v_and_c, :objtype=>2:6)
   subsets = [
     (
@@ -142,29 +155,14 @@ function profile_and_tables(stats)
       CUTEst.select(;cutestselect..., only_ineq_con=true, only_bnd_var=true) ∩ all_problems
     ),
     (
-      "só desigualdades", #"only equalities",
+      "só igualdades", #"only equalities",
       "equ",
       CUTEst.select(;cutestselect..., only_equ_con=true, only_free_var=true) ∩ all_problems
     ),
     (
-      "só igualdades", #"only inequalities",
+      "só desigualdades", #"only inequalities",
       "ineq",
       CUTEst.select(;cutestselect..., only_ineq_con=true, only_free_var=true) ∩ all_problems
-    ),
-    (
-      "≤ 10",
-      "le10",
-      CUTEst.select(min_con=1, max_var=10, max_con=10, objtype=2:6) ∩ all_problems
-    ),
-    (
-      "≤ 100",
-      "le100",
-      CUTEst.select(min_con=1, max_var=100, max_con=100, objtype=2:6) ∩ all_problems
-    ),
-    (
-      "≥ 100",
-      "ge100",
-      CUTEst.select(min_var=100, min_con=100, objtype=2:6) ∩ all_problems
     )
   ]
 
@@ -181,6 +179,7 @@ function profile_and_tables(stats)
       nss = length(I)
       for (costs, costnames, costsuffix) in costsets
         titles = costnames .* " - $subsetname - $nss problemas"
+        println(costnames)
         p = profile_solvers(ss_stats, costs, titles, width=600, height=500)
         for i = 1:length(costs)
           xlabel!(p[i], "Parâmetro τ")
