@@ -1,0 +1,22 @@
+{
+  "description": "Implementation of numerical tests for the augmented Lagrangian solver Percival",
+  "license": "Creative Commons Attribution 2.0 Generic",
+  "title": "Pecival-tests",
+  "creators": [
+    {
+      "affiliation": "Federal University of Paran\u00e1 - UFPR",
+      "name": "Egmara Antunes dos Santos"
+    },
+    {
+      "affiliation": "Federal University of Paran\u00e1 - UFPR",
+      "name": "Abel Soares Siqueira"
+    }
+  ],
+  "access_right": "open",
+  "related_identifiers": [
+    {
+      "scheme": "url",
+      "identifier": "https://github.com/CiDAMO/Percival-tests/releases/latest"
+    }
+  ]
+}
